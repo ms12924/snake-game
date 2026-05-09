@@ -1,14 +1,15 @@
-#include <ncurses.h>
-#include "map.hpp"
-#include "snake.hpp"
+#include <ncurses.h> // ncurses 기능 사용
+#include "map.hpp" // 맵 출력 함수
+#include "snake.hpp" // 뱀 함수
+#include "item.hpp"
 
 int main(){
-    initscr(); //ncurses 화면 초기화. 항상 맨 처음에 호출
+    initscr(); // ncurses 화면 초기화. 항상 맨 처음에 호출
     cbreak(); 
     noecho();
-    keypad(stdscr, TRUE); //방향키같은 특수키 인식 가능
+    keypad(stdscr, TRUE); // 방향키같은 특수키 인식 가능
     curs_set(0);
-    nodelay(stdscr, TRUE);
+    nodelay(stdscr, TRUE); // 프로그램 멈추지 않도록 함
 
     start_color(); //색상 초기화
     init_color(COLOR_WHITE, 700, 700, 700);
@@ -17,21 +18,24 @@ int main(){
     init_pair(2, COLOR_BLACK, COLOR_BLACK);
     init_pair(3, COLOR_YELLOW, COLOR_YELLOW);
     init_pair(4, 8, 8);
+    init_pair(5, COLOR_GREEN, COLOR_GREEN);
+    init_pair(6, COLOR_RED, COLOR_RED);
 
     initSnake();
+    initItems();
 
     int tick=0;
     while (!gameOver){
         int key=getch();
 
-        //방향키 입력 되게
+        //방향키 입력 되도록
         if(key==KEY_UP && dir!=DOWN) dir=UP;
         if(key==KEY_DOWN && dir!=UP) dir=DOWN;
         if(key==KEY_LEFT && dir!=RIGHT) dir=LEFT;
         if(key==KEY_RIGHT && dir!=LEFT) dir=RIGHT;
 
         
-        //반대 방향 입력시 게임오버
+        //반대 방향 입력시 게임오버 되도록
         if((key==KEY_UP && dir==DOWN) || (key==KEY_DOWN && dir==UP) || (key==KEY_LEFT && dir==RIGHT) || (key==KEY_RIGHT && dir==LEFT)){
             gameOver=true;
             break;
@@ -40,19 +44,33 @@ int main(){
 
         tick++;
         if(tick%5==0){ //0.5초마다 이동
-            moveSnake();
-        }
+            Point head = snake.front();
+            Point newHead = head;
+            if(dir==UP) newHead.y--;
+            if(dir==DOWN) newHead.y++;
+            if(dir==LEFT) newHead.x--;
+            if(dir==RIGHT) newHead.x++;
+            int headType=map[newHead.y][newHead.x];
 
-        drawMap();
-        refresh();
-        napms(100);
+            moveSnake();
+
+            if(headType==5 || headType==6){
+                applyItem(headType);
+            }
+        }
+        updateItems();
+
+        drawMap(); // 현재 맵 상태
+        refresh(); // 화면에 반영
+        napms(100); //0.1초 대기
 
     }
 
+    // 게임오버가 되었을 때
     mvprintw(MAP_SIZE/2, MAP_SIZE-4, "GAME OVER");
-    refresh();
-    napms(2000);
+    refresh(); 
+    napms(2000); // 게임오버 화면 2초 동안 유지
 
     endwin();
-    return 0;
+    return 0; // 프로그램 종료
 }
